@@ -129,6 +129,25 @@ def save_wav_file(filename: str, rate: int, samples: np.ndarray, bit_length=16):
         wavfile.write(filename, rate, data)
 
 
+def get_features_range(model_settings: Dict):
+    """
+    Returns the expected min/max for generated features.
+    Args:
+        model_settings: Information about the current model being trained.
+    Returns:
+        Min/max float pair holding the range of features.
+    Raises:
+        Exception: If preprocessing mode isn't recognized.
+    """
+    if model_settings["preprocess"] == "average":
+        features_min, features_max = 0.0, 127.5
+    elif model_settings["preprocess"] == "mfcc":
+        features_min, features_max = -247.0, 30.0
+    else:
+        raise Exception("Unknown preprocess mode %s (should be 'mfcc' or 'average')" % model_settings["preprocess"])
+    return features_min, features_max
+
+
 class AudioProcessor(object):
     """Handles loading, partitioning, and preparing audio training data."""
 
@@ -141,7 +160,7 @@ class AudioProcessor(object):
             "Invalid silence and unknown percentage amount, their sum must be lower than 100"
 
         self.data_dir = data_dir
-        self.data_index: Dict[str, List[Dict[str, str]]] = dict.fromkeys(["validation", "testing", "training"], [])
+        self.data_index = dict.fromkeys(["validation", "testing", "training"], [])
         self.word_list = prepare_words_list(wanted_words)
         self.word_to_index = {word: index for index, word in enumerate(self.word_list)}  # _silence_: 0, _unknown_: 1,..
         self.prepare_data_index(silence_percentage, unknown_percentage, wanted_words,
@@ -500,36 +519,3 @@ class AudioProcessor(object):
             data.append(data_tensor.flatten())
             labels.append(self.word_to_index[sample["label"]])
         return data, labels
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
